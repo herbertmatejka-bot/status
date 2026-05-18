@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Status Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3250;
+      --text: #e8eaf6;
+      --muted: #8890b5;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --orange: #f97316;
+      --red: #ef4444;
+      --gray: #64748b;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      padding: 32px 16px 64px;
+    }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-left p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #last-updated {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    #refresh-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    #refresh-btn:hover { background: var(--border); }
+    #refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .grid {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: #4a5080; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .service-name {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .service-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .service-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 4px;
+    }
+
+    .card-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .card-header a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .card-header a:hover { text-decoration: underline; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .status-none     { background: #16311f; color: var(--green);  border: 1px solid #1e4a2b; }
+    .status-minor    { background: #322b00; color: var(--yellow); border: 1px solid #4d4200; }
+    .status-major    { background: #33180a; color: var(--orange); border: 1px solid #4d260f; }
+    .status-critical { background: #2d0d0d; color: var(--red);    border: 1px solid #4a1515; }
+    .status-unknown  { background: #1a1f2e; color: var(--gray);   border: 1px solid var(--border); }
+
+    .dot-none     { background: var(--green); }
+    .dot-minor    { background: var(--yellow); }
+    .dot-major    { background: var(--orange); }
+    .dot-critical { background: var(--red); }
+    .dot-unknown  { background: var(--gray); }
+
+    .card-desc {
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 14px;
+    }
+
+    .components {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .component-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .component-name {
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+
+    .comp-status {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: capitalize;
+      flex-shrink: 0;
+    }
+
+    .comp-operational        { color: var(--green); }
+    .comp-degraded_performance { color: var(--yellow); }
+    .comp-partial_outage     { color: var(--orange); }
+    .comp-major_outage       { color: var(--red); }
+    .comp-under_maintenance  { color: var(--gray); }
+
+    .show-more {
+      font-size: 0.75rem;
+      color: var(--muted);
+      cursor: pointer;
+      margin-bottom: 12px;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+    .show-more:hover { color: var(--text); }
+
+    .incidents {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .incident {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--orange);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+    }
+
+    .incident.critical { border-left-color: var(--red); }
+    .incident.minor    { border-left-color: var(--yellow); }
+
+    .incident-name { color: var(--text); font-weight: 500; margin-bottom: 3px; }
+    .incident-meta { color: var(--muted); font-size: 0.72rem; }
+    .incident a { color: var(--muted); }
+
+    .error-msg {
+      color: var(--red);
+      font-size: 0.78rem;
+      margin-top: 8px;
+      font-family: monospace;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, var(--surface2) 25%, var(--border) 50%, var(--surface2) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease infinite;
+      border-radius: 6px;
+      height: 14px;
+      margin: 6px 0;
+    }
+
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .overall-bar {
+      max-width: 1200px;
+      margin: 0 auto 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .overall-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    #overall-text { font-size: 0.9rem; font-weight: 500; }
+
+    .countdown {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    @media (max-width: 600px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>Service Status Dashboard</h1>
+      <p>Live status for AI &amp; cloud services</p>
+    </div>
+    <div class="header-right">
+      <span id="last-updated">Loading...</span>
+      <button id="refresh-btn">
+        <svg id="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <div class="overall-bar">
+    <div class="overall-indicator" id="overall-dot"></div>
+    <span id="overall-text">Checking services...</span>
+    <span class="countdown" id="countdown"></span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const STATUS_ORDER = ['critical', 'major', 'minor', 'unknown', 'none'];
+    const STATUS_LABELS = {
+      none: 'Operational',
+      minor: 'Degraded',
+      major: 'Major Outage',
+      critical: 'Critical',
+      unknown: 'Unknown',
+    };
+
+    const LOGOS = {
+      vapi:       'https://avatars.githubusercontent.com/u/97945558',
+      deepgram:   'https://avatars.githubusercontent.com/u/20701716',
+      elevenlabs: 'https://avatars.githubusercontent.com/u/102777116',
+      openai:     'https://avatars.githubusercontent.com/u/14957082',
+      twilio:     'https://avatars.githubusercontent.com/u/109142',
+      cloudflare: 'https://avatars.githubusercontent.com/u/314135',
+      aws:        'https://avatars.githubusercontent.com/u/2232217',
+    };
+
+    const FALLBACK_EMOJI = {
+      vapi: '🤖', deepgram: '🎙️', elevenlabs: '🔊',
+      openai: '🧠', twilio: '📞', cloudflare: '☁️', aws: '🌩️',
+    };
+
+    let countdown = 60;
+    let countdownTimer;
+
+    function resetCountdown() {
+      countdown = 60;
+      clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        countdown--;
+        document.getElementById('countdown').textContent = `Refreshes in ${countdown}s`;
+        if (countdown <= 0) fetchStatus();
+      }, 1000);
+    }
+
+    function logoEl(icon) {
+      const wrap = document.createElement('div');
+      wrap.className = 'service-logo';
+      const src = LOGOS[icon];
+      if (src) {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        img.onerror = () => { wrap.innerHTML = FALLBACK_EMOJI[icon] || '?'; };
+        wrap.appendChild(img);
+      } else {
+        wrap.textContent = FALLBACK_EMOJI[icon] || '?';
+      }
+      return wrap;
+    }
+
+    function compStatusClass(s) {
+      const map = {
+        operational: 'comp-operational',
+        degraded_performance: 'comp-degraded_performance',
+        partial_outage: 'comp-partial_outage',
+        major_outage: 'comp-major_outage',
+        under_maintenance: 'comp-under_maintenance',
+      };
+      return map[s] || '';
+    }
+
+    function compStatusLabel(s) {
+      const map = {
+        operational: 'OK',
+        degraded_performance: 'Degraded',
+        partial_outage: 'Partial outage',
+        major_outage: 'Major outage',
+        under_maintenance: 'Maintenance',
+      };
+      return map[s] || s;
+    }
+
+    function renderCard(svc) {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      // Header
+      const header = document.createElement('div');
+      header.className = 'card-header';
+
+      const nameWrap = document.createElement('div');
+      nameWrap.className = 'service-name';
+      nameWrap.appendChild(logoEl(svc.icon));
+
+      const h2 = document.createElement('h2');
+      const link = document.createElement('a');
+      link.href = svc.homepage;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = svc.name;
+      h2.appendChild(link);
+      nameWrap.appendChild(h2);
+
+      const badge = document.createElement('span');
+      badge.className = `badge status-${svc.status}`;
+      const dot = document.createElement('span');
+      dot.className = `badge-dot dot-${svc.status}`;
+      badge.appendChild(dot);
+      badge.appendChild(document.createTextNode(STATUS_LABELS[svc.status] || svc.status));
+
+      header.appendChild(nameWrap);
+      header.appendChild(badge);
+      card.appendChild(header);
+
+      // Description
+      if (svc.description) {
+        const desc = document.createElement('p');
+        desc.className = 'card-desc';
+        desc.textContent = svc.description;
+        card.appendChild(desc);
+      }
+
+      // Error
+      if (svc.error) {
+        const err = document.createElement('p');
+        err.className = 'error-msg';
+        err.textContent = svc.error;
+        card.appendChild(err);
+        return card;
+      }
+
+      // Components
+      const SHOW_INITIAL = 5;
+      if (svc.components && svc.components.length > 0) {
+        const comps = document.createElement('div');
+        comps.className = 'components';
+
+        svc.components.forEach((c, i) => {
+          const row = document.createElement('div');
+          row.className = 'component-row';
+          if (i >= SHOW_INITIAL) row.style.display = 'none';
+
+          const name = document.createElement('span');
+          name.className = 'component-name';
+          name.textContent = c.name;
+
+          const status = document.createElement('span');
+          status.className = `comp-status ${compStatusClass(c.status)}`;
+          status.textContent = compStatusLabel(c.status);
+
+          row.appendChild(name);
+          row.appendChild(status);
+          comps.appendChild(row);
+        });
+        card.appendChild(comps);
+
+        if (svc.components.length > SHOW_INITIAL) {
+          const btn = document.createElement('button');
+          btn.className = 'show-more';
+          btn.textContent = `+ ${svc.components.length - SHOW_INITIAL} more components`;
+          let expanded = false;
+          btn.addEventListener('click', () => {
+            expanded = !expanded;
+            comps.querySelectorAll('.component-row').forEach((r, i) => {
+              if (i >= SHOW_INITIAL) r.style.display = expanded ? '' : 'none';
+            });
+            btn.textContent = expanded
+              ? 'Show fewer'
+              : `+ ${svc.components.length - SHOW_INITIAL} more components`;
+          });
+          card.appendChild(btn);
+        }
+      }
+
+      // Incidents
+      if (svc.incidents && svc.incidents.length > 0) {
+        const incWrap = document.createElement('div');
+        incWrap.className = 'incidents';
+        svc.incidents.forEach(inc => {
+          const el = document.createElement('div');
+          el.className = `incident ${inc.impact || ''}`;
+          const nm = document.createElement('div');
+          nm.className = 'incident-name';
+          nm.textContent = inc.name;
+          const meta = document.createElement('div');
+          meta.className = 'incident-meta';
+          meta.textContent = inc.impact ? `Impact: ${inc.impact}` : '';
+          if (inc.shortlink) {
+            const a = document.createElement('a');
+            a.href = inc.shortlink;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = ' — Details';
+            meta.appendChild(a);
+          }
+          el.appendChild(nm);
+          el.appendChild(meta);
+          incWrap.appendChild(el);
+        });
+        card.appendChild(incWrap);
+      }
+
+      return card;
+    }
+
+    function renderSkeletons(n = 7) {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      for (let i = 0; i < n; i++) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="service-name">
+              <div class="service-logo" style="background:var(--surface2)"></div>
+              <div class="skeleton" style="width:100px;height:16px;margin:0"></div>
+            </div>
+            <div class="skeleton" style="width:80px;height:24px;margin:0;border-radius:20px"></div>
+          </div>
+          <div class="skeleton"></div>
+          <div class="skeleton" style="width:80%"></div>
+          <div class="skeleton" style="width:90%"></div>
+          <div class="skeleton" style="width:70%"></div>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    async function fetchStatus() {
+      const btn = document.getElementById('refresh-btn');
+      btn.classList.add('spinning');
+      renderSkeletons();
+
+      try {
+        const resp = await fetch('/api/status');
+        const data = await resp.json();
+
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        data.services.forEach(svc => grid.appendChild(renderCard(svc)));
+
+        // Overall status
+        const worst = data.services.reduce((acc, svc) => {
+          const ai = STATUS_ORDER.indexOf(svc.status);
+          const bi = STATUS_ORDER.indexOf(acc);
+          return ai < bi ? svc.status : acc;
+        }, 'none');
+
+        const dotColors = { none: '#22c55e', minor: '#eab308', major: '#f97316', critical: '#ef4444', unknown: '#64748b' };
+        const overallDot = document.getElementById('overall-dot');
+        overallDot.style.background = dotColors[worst] || '#64748b';
+        document.getElementById('overall-text').textContent =
+          worst === 'none' ? 'All systems operational' :
+          worst === 'minor' ? 'Some systems degraded' :
+          worst === 'major' ? 'Major outage in progress' :
+          worst === 'critical' ? 'Critical outage in progress' : 'Status unknown';
+
+        const d = new Date(data.updated);
+        document.getElementById('last-updated').textContent = `Updated ${d.toLocaleTimeString()}`;
+        resetCountdown();
+      } catch (e) {
+        console.error(e);
+        document.getElementById('last-updated').textContent = 'Update failed';
+      } finally {
+        btn.classList.remove('spinning');
+      }
+    }
+
+    document.getElementById('refresh-btn').addEventListener('click', fetchStatus);
+    fetchStatus();
+  </script>
+</body>
+</html>

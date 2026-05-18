@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(New-Item *)",
+      "PowerShell(Start-Sleep -Seconds 1; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/api/status\" -TimeoutSec 10; Write-Output \"HTTP $\\($r.StatusCode\\) - OK\" } catch { Write-Output \"Error: $_\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -TimeoutSec 5; Write-Output \"Home page: HTTP $\\($r.StatusCode\\)\" } catch { Write-Output \"Home: $_\" }; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/api/status\" -TimeoutSec 15; Write-Output \"API: HTTP $\\($r.StatusCode\\)\" } catch { Write-Output \"API: $_\" })",
+      "PowerShell(netstat *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(Receive-Job *)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/api/status\" -TimeoutSec 20; Write-Output \"OK - $\\($r.StatusCode\\)\"; $r.Content | ConvertFrom-Json | Select-Object -ExpandProperty updated } catch { Write-Output \"Error: $_\" })",
+      "PowerShell(Start-Process -FilePath \"node\" -ArgumentList \"server.js\" -WorkingDirectory \"C:\\\\Users\\\\Gaming\\\\status\" -WindowStyle Hidden -PassThru | Select-Object Id)",
+      "PowerShell($r = Invoke-RestMethod -Uri \"http://localhost:3000/api/status\" -TimeoutSec 25; Write-Output \"Updated: $\\($r.updated\\)\"; $r.services | ForEach-Object { \"$\\($_.name\\): $\\($_.status\\)\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri 'http://localhost:3000/api/status' -TimeoutSec 15 -ErrorAction Stop; $r.Content | ConvertFrom-Json | ConvertTo-Json -Depth 5 } catch { \"Server not running or error: $_\" })",
+      "WebFetch(domain:status.vapi.ai)",
+      "PowerShell(Start-Sleep -Seconds 2; try { $r = Invoke-RestMethod -Uri 'http://localhost:3000/api/status' -TimeoutSec 20 -ErrorAction Stop; $r.services | Where-Object { $_.name -eq 'Vapi' } | ConvertTo-Json -Depth 5 } catch { \"Error: $_\" })",
+      "PowerShell($resp = Invoke-WebRequest -Uri 'https://status.vapi.ai/api/v2/summary.json' -Headers @{'Accept'='application/json';'User-Agent'='status-dashboard/1.0'} -TimeoutSec 15 -MaximumRedirection 0 -ErrorAction SilentlyContinue; \"Status: $\\($resp.StatusCode\\)\"; \"Content-Type: $\\($resp.Headers['Content-Type']\\)\"; \"Location: $\\($resp.Headers['Location']\\)\")",
+      "WebFetch(domain:uptime.betterstack.com)",
+      "PowerShell(Start-Sleep -Seconds 2; $r = Invoke-RestMethod -Uri 'http://localhost:3000/api/status' -TimeoutSec 25; $r.services | Where-Object { $_.name -eq 'Vapi' } | ConvertTo-Json -Depth 4)"
+    ]
+  }
+}
